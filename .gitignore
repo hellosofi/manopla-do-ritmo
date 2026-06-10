@@ -1,0 +1,25 @@
+# =========================
+# 👽 PLATFORMIO / ARDUINO
+# =========================
+.pio/
+.vscode/
+*.o
+*.elf
+*.bin
+
+# =========================
+# 🐍 PYTHON
+# =========================
+__pycache__/
+*.pyc
+*.pyo
+venv/
+env/
+.env
+
+# =========================
+# 💻 SISTEMA OPERACIONAL
+# =========================
+.DS_Store
+Thumbs.db
+desktop.ini
