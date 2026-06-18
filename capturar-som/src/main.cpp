@@ -1,87 +1,53 @@
 #include <Arduino.h>
 
-// recebe dados do python
-int intensidadeBatida= 0;
-
-// // led rgb (futuro teste)
-// const int red = 1;
-// const int green = 2;
-// const int blue = 3;
-
-// led normal
-int azul = 8;
-int verde = 9;
-int amarelo = 10;
-int laranja = 11;
-int vermelho = 12;
+int pinoMotor = 3;
+int forcaAtualMotor = 0;   // Guarda a força real do motor naquele exato momento
+int taxaDesaceleracao = 5; // Velocidade com que o motor "freia" (ajuste a gosto)
 
 void setup() {
-  Serial.begin(115200);
-
-  // leds
-  pinMode(azul, OUTPUT);
-  pinMode(verde, OUTPUT);
-  pinMode(amarelo, OUTPUT);
-  pinMode(laranja, OUTPUT);
-  pinMode(vermelho, OUTPUT);
+    pinMode(pinoMotor, OUTPUT);
+    Serial.begin(115200);
+    
+    // Configuração extra: Evita que o Arduino trave muito tempo lendo a porta
+    Serial.setTimeout(10); 
 }
 
-
 void loop() {
-  // Serial.available verifica a quantidade de bytes que estão sendo recebidos -> pela porta USB
-  // se está passando alguma informação então é maior que 0 
-  if (Serial.available() > 0){
-
-    // aqui pega o número certo que está sendo passado pela porta serial
-    // >> batida
-    intensidadeBatida = Serial.parseInt();
-    // ## Python ##
-    // valores = map(intensidadeBatida, 0, 1023)
-    // ## ###### ##
-
-    // filtro de ruído:
-    if (intensidadeBatida > 0){
-      
-      if (intensidadeBatida > 350){
-        digitalWrite(azul, LOW);
-        digitalWrite(verde, LOW);
-        digitalWrite(amarelo, LOW);
-        digitalWrite(laranja, LOW);
-        digitalWrite(vermelho, HIGH);
-      } else if (intensidadeBatida > 250){
-        digitalWrite(azul, LOW);
-        digitalWrite(verde, LOW);
-        digitalWrite(amarelo, LOW);
-        digitalWrite(laranja, HIGH);
-        digitalWrite(vermelho, LOW);
-      } else if (intensidadeBatida > 150){
-        digitalWrite(azul, LOW);
-        digitalWrite(verde, LOW);
-        digitalWrite(amarelo, HIGH);
-        digitalWrite(laranja, LOW);
-        digitalWrite(vermelho, LOW);
-      }else if (intensidadeBatida > 100) {
-        digitalWrite(azul, LOW);
-        digitalWrite(verde, HIGH);
-        digitalWrite(amarelo, LOW);
-        digitalWrite(laranja, LOW);
-        digitalWrite(vermelho, LOW);      
-      }else if (intensidadeBatida < 50) {
-        digitalWrite(azul, HIGH);
-        digitalWrite(verde, LOW);
-        digitalWrite(amarelo, LOW);
-        digitalWrite(laranja, LOW);
-        digitalWrite(vermelho, LOW);
+    if (Serial.available() > 0) {
+        int intensidadeBatida = Serial.parseInt();
+        
+        // Limpa o "Enter" (\n) que o Python manda junto com o número
+        while (Serial.available() > 0 && Serial.peek() == '\n') {
+            Serial.read();
         }
-        else{
-        digitalWrite(azul, LOW);
-        digitalWrite(verde, LOW);
-        digitalWrite(amarelo, LOW);
-        digitalWrite(laranja, LOW);
-        digitalWrite(vermelho, LOW);
-      }
+
+        int forcaAlvo = 0;
+
+        // O seu threshold original: só passa daqui se for uma batida real
+        if (intensidadeBatida >= 150) {
+            forcaAlvo = map(intensidadeBatida, 150, 600, 100, 255);
+            forcaAlvo = constrain(forcaAlvo, 0, 255);
+        }
+
+        // ==========================================
+        // 🧠 A MÁGICA DA SUAVIZAÇÃO
+        // ==========================================
+        if (forcaAlvo > forcaAtualMotor) {
+            // "PAM!": Se a batida alvo for mais forte que o estado atual, 
+            // a força sobe instantaneamente para dar o impacto da quebra.
+            forcaAtualMotor = forcaAlvo;
+        } else {
+            // Queda Suave: Se o som abaixou ou silenciou, nós NÃO zeramos de vez.
+            // O motor vai diminuindo a força gradativamente, criando o efeito de suavidade.
+            forcaAtualMotor -= taxaDesaceleracao;
+            
+            // Trava para impedir que a energia passe do zero para o negativo
+            if (forcaAtualMotor < 0) {
+                forcaAtualMotor = 0;
+            }
+        }
+
+        // Aciona o motor com o valor recém-calculado (sem trancos bruscos)
+        analogWrite(pinoMotor, forcaAtualMotor);
     }
-
-
-  }
 }

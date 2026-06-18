@@ -23,3 +23,8 @@ env/
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# =========================
+# 🌟EXTRA...
+# =========================
+app/
