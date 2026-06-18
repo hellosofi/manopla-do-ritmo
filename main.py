@@ -11,6 +11,11 @@ warnings.filterwarnings("ignore", category=sc.SoundcardRuntimeWarning)
 os.system('cls' if os.name == 'nt' else 'clear')
 
 # ==========================================================
+# 0. VARIÁVEIS DE INTENSIDADE
+# ==========================================================
+fator = 1 # porcentagem
+
+# ==========================================================
 # 1. FUNÇÃO DE AUTODETECÇÃO DO ARDUINO
 # ==========================================================
 def descobrir_porta_arduino():
@@ -25,77 +30,99 @@ print("🔍 Buscando Arduino...")
 porta_automatica = descobrir_porta_arduino()
 
 if not porta_automatica:
-    print("❌ Nenhum Arduino encontrado!")
+    print("❌ Nenhum Arduino encontrado! Verifique o cabo USB.")
     exit()
 
 try:
     arduino = serial.Serial(porta_automatica, 115200, timeout=0.1)
-    time.sleep(2)
-    print(f"✅ Conectado automaticamente na porta: {porta_automatica}!\n") 
+    time.sleep(2) 
+    print(f"✅ Conectado com sucesso na porta: {porta_automatica}!\n") 
 except Exception as e:
-    print(f"❌ Erro ao conectar: {e}\nFeche o Serial Monitor da IDE do Arduino e tente de novo.")
+    print(f"❌ Erro ao conectar: {e}")
     exit()
 
 # ==========================================================
-# 2. PREPARANDO O FILTRO E O ÁUDIO
+# 2. FILTRO AMPLO (PEGA TUDO: 60Hz até 4000Hz)
 # ==========================================================
 taxa_amostra = 48000
-b, a = butter(5, 150 / (taxa_amostra * 0.5), btype='low') # Filtro de Graves
+nyq = 0.5 * taxa_amostra
 
-historico_graves = [0.0] * 12  # Memória curta do som de fundo
+# Filtro bem aberto para não ignorar absolutamente nenhum instrumento ou voz do jogo
+limite_baixo = 40 / nyq # Graves
+limite_alto = 6000 / nyq # Agudos
+b, a = butter(3, [limite_baixo, limite_alto], btype='bandpass')
 
-# --- O SEGREDO DO ENCAIXE MUSICAL ---
+# Históricos para a Sensibilidade Inteligente
+historico_curto = [0.0] * 5    # Segue o ritmo frenético das notas
+historico_longo = [0.0] * 40   # Entende o volume geral da música de fundo
+volume_max_detectado = 0.2
+
 tempo_ultima_batida = 0
-cooldown_batida = 0.1  # Segundos que o motor "descansa" entre um soco e outro (0.1 = 100ms)
+cooldown_batida = 0.06  # 60ms ideal para FNF e Muse Dash
 
 caixa_som = sc.default_speaker()
-print(f"🔊 Escutando os graves de: {caixa_som.name}...")
-print("Pressione CTRL+C no terminal para encerrar.\n")
+
+print("=" * 60)
+print(f"🎮 MODO TOTAL: GRAVES + AGUDOS REATIVOS")
+print(f"🎧 Escutando: {caixa_som.name}")
+print("=" * 60)
+print("Pressione CTRL+C para encerrar.\n")
 
 # ==========================================================
-# 3. O LOOP PRINCIPAL (TEMPO REAL)
+# 3. LOOP DE CAPTURA
 # ==========================================================
-volume_max_detectado = 0.5
 try:
     with sc.get_microphone(id=str(caixa_som.id), include_loopback=True).recorder(samplerate=taxa_amostra) as mic:
         while True:
-            
             audio_bruto = mic.record(numframes=1024)
             audio_filtrado = lfilter(b, a, audio_bruto[:, 0])
-            forca_atual = np.max(np.abs(audio_filtrado))
+            
+            # Voltamos para a energia real do som (RMS), que nunca falha
+            forca_atual = np.sqrt(np.mean(audio_filtrado**2))
 
-            media_recente = sum(historico_graves) / len(historico_graves)
+            media_curta = sum(historico_curto) / len(historico_curto)
+            media_longa = sum(historico_longo) / len(historico_longo)
             tempo_atual = time.time()
 
-            # A BATIDA ACONTECE SE:
-            # 1. É 35% mais alta que o fundo (pico)
-            # 2. Não é só ruído estático (> 0.05)
-            # 3. Já passou o tempo do cooldown
-            if forca_atual > (media_recente * 1.35) and forca_atual > 0.05 and (tempo_atual - tempo_ultima_batida > cooldown_batida):
+            # AJUSTE AUTOMÁTICO DE BRINDE:
+            # Se a música inteira estiver baixa, o limite mínimo cai para aceitar tons médios
+            if media_longa < 0.015:
+                fator_gatilho = 1.15      # Exige só 15% de aumento (super sensível)
+                limite_silencio = 0.005   # Quase zero (pega qualquer barulhinho)
+            else:
+                fator_gatilho = 1.30      # Exige 30% de aumento no refrão barulhento
+                limite_silencio = 0.02
+
+            # LÓGICA DA BATIDA: O som atual precisa superar a média dos últimos milissegundos
+            if forca_atual > (media_curta * fator_gatilho) and forca_atual > limite_silencio and (tempo_atual - tempo_ultima_batida > cooldown_batida):
                 
-                # Ajuste dinâmico: Se a música for muito alta, ele recalibra o pico
                 if forca_atual > volume_max_detectado:
                     volume_max_detectado = forca_atual
                 
-                # Mapeia a força atual baseada no que foi o volume máximo até agora
-                # Isso faz com que batidas fracas virem vibrações fracas, e batidas fortes virem vibrações máximas
-                valor_motor = int(np.interp(forca_atual, [0.05, volume_max_detectado], [80, 255]))
-                valor_motor = max(80, min(255, valor_motor)) 
+                # Transforma a força em sinal para o motor (100 a 255)
+                valor_motor = int(np.interp(forca_atual, [limite_silencio, volume_max_detectado], [100, 255]))
+                valor_motor = int(fator * valor_motor)
+                valor_motor = max(100, min(255, valor_motor))
                 
                 tempo_ultima_batida = tempo_atual
-                print(f"💥 BATIDA VARIÁVEL! Força: {valor_motor:03d}")
-            else:
-                valor_motor = 0
-
-            historico_graves.pop(0)
-            historico_graves.append(forca_atual)
-
-            arduino.write(f"{valor_motor}\n".encode())
+                
+                # Envia para o Arduino
+                arduino.write(f"{valor_motor}\n".encode())
+                
+                # Gráfico do terminal
+                tamanho_barra = int(np.interp(valor_motor, [100, 255], [5, 40]))
+                print(f"💥 NOTA | {'█' * tamanho_barra}{' ' * (45 - tamanho_barra)} [Força: {valor_motor:03d}]")
+            
+            # Atualiza os históricos
+            historico_curto.pop(0)
+            historico_curto.append(forca_atual)
+            
+            historico_longo.pop(0)
+            historico_longo.append(forca_atual)
 
 except KeyboardInterrupt:
-    print("\n⏹ Instrução de parada recebida.")
+    print("\n⏹ Parado pelo usuário.")
 finally:
     if 'arduino' in locals() and arduino.is_open:
         arduino.write(b"0\n")
         arduino.close()
-        print("🔌 Conexão com o Arduino encerrada.")
