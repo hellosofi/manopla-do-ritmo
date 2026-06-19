@@ -1,7 +1,7 @@
 # =========================
 # 👽 PLATFORMIO / ARDUINO
 # =========================
-.capturar-som/
+capturar-som/
 .pio/
 .vscode/
 *.o

@@ -1,310 +1,107 @@
 # Detector de Batidas com Arduino
 
-[![Python](https://img.shields.io/badge/Python-3.9%2B-blue?style=for-the-badge&logo=python)](https://www.python.org/)
-[![Arduino](https://img.shields.io/badge/Arduino-Compatible-00979D?style=for-the-badge&logo=arduino&logoColor=white)](https://www.arduino.cc/)
-[![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
+Sistema que integra **Python + Arduino** pensado para jogos de ritmo. Captura o áudio do computador em tempo real, detecta batidas e aciona um motor físico via comunicação serial com resposta tátil rápida e precisa.
 
-Sistema em **Python + Arduino** para detectar batidas musicais em tempo real e controlar um motor via PWM com resposta suave.
+### ⭐ Sugestões de Jogos
 
-O projeto foi pensado para aplicações como:
+Este projeto foi calibrado e otimizado para jogos de ritmo acelerados, onde a precisão do feedback tátil e o tempo de resposta fazem toda a diferença. Experimente testar a manopla com:
 
-- jogos de ritmo
-- feedback tátil
-- automação reativa ao áudio
-- efeitos musicais interativos
+* **Friday Night Funkin' (FNF):** Excelente para testar a detecção de transientes rápidos e notas agudas nos vocais isolados dos personagens (como o Boyfriend).
+* **Muse Dash:** Perfeito para testar o tempo de resposta (*cooldown*) do motor e o impacto seco nos graves a cada batida frenética.
 
 ---
 
-## Preview
-
-Este projeto captura o áudio do computador, detecta batidas e envia a intensidade para o Arduino, que controla o motor com resposta rápida e desaceleração suave.
-
----
-
-## Índice
-
-- [Visão geral](#visão-geral)
-- [Como funciona](#como-funciona)
-- [Estrutura do projeto](#estrutura-do-projeto)
-- [Requisitos](#requisitos)
-- [Instalação](#instalação)
-- [Como usar](#como-usar)
-- [Ligação do motor](#ligação-do-motor)
-- [Configurações importantes](#configurações-importantes)
-- [Problemas comuns](#problemas-comuns)
-- [Estrutura dos valores enviados](#estrutura-dos-valores-enviados)
-- [Melhorias futuras](#melhorias-futuras)
-- [Licença](#licença)
-- [Autor](#autor)
-
----
-
-## Visão geral
-
-O projeto é dividido em duas partes principais:
-
-### Python
-Responsável pela inteligência do sistema:
-
-- captura o áudio do sistema em tempo real
-- filtra frequências relevantes para destacar a batida
-- detecta batidas com base em energia e variação do sinal
-- envia a intensidade da batida para o Arduino via serial
-
-### Arduino
-Responsável pela atuação física:
-
-- recebe os valores enviados pelo Python
-- converte a intensidade em PWM
-- controla um motor com subida rápida e desaceleração suave
-
----
-
-## Como funciona
-
-O fluxo do sistema é o seguinte:
-
-1. O Python captura o áudio da saída do computador.
-2. O áudio passa por um filtro para destacar graves e médio-graves.
-3. O algoritmo identifica o "ataque" da batida.
-4. A intensidade detectada é convertida em um valor serial.
-5. O Arduino recebe esse valor.
-6. O motor é acionado proporcionalmente, com suavização no tempo.
-
----
-
-## Estrutura do projeto
+## 📂 Estrutura do Projeto
 
 ```text
-seu-projeto/
-├── detector_batida.py
-├── controle_motor.ino
-├── LICENSE
+manopla-do-ritmo/
+├── artefato/
+│   └── controle_motor.ino    # Código do Arduino
+├── .gitignore
+├── main.py                   # Script Python principal
 ├── README.md
-└── requirements.txt
+└── requirements.txt          # Dependências do Python
 ```
-
-### Arquivos principais
-
-- `detector_batida.py`  
-  Código Python responsável pela análise de áudio e envio dos dados ao Arduino.
-
-- `controle_motor.ino`  
-  Sketch do Arduino responsável por receber os dados e acionar o motor.
-
-- `requirements.txt`  
-  Lista de dependências Python do projeto.
-
-- `LICENSE`  
-  Licença do projeto.
 
 ---
 
-## Requisitos
+## 🛠️ Requisitos e Instalação (Python)
 
-### No computador
-- Python **3.9+** (para usar o código) **OU** Windows 10+ (para usar o executável)
-- Bibliotecas Python:
-  - `numpy`
-  - `soundcard`
-  - `pyserial`
-  - `scipy`
-
-### No Arduino
-- Placa compatível com Arduino
-- Motor DC ou motor de vibração
-- Circuito de acionamento adequado:
-  - MOSFET ou transistor
-  - diodo de proteção
-  - fonte externa para o motor
-  - GND comum entre Arduino e fonte
-
----
-
-## Instalação
-
-### Opção 1: Usar o código Python
-
-#### 1. Clonar o repositório
-
-```bash
-git clone https://github.com/SEU_USUARIO_GITHUB/SEU_REPOSITORIO.git
-cd SEU_REPOSITORIO
-```
-
-#### 2. Criar ambiente virtual opcional
-
-```bash
-python -m venv venv
-```
-
-#### 3. Ativar o ambiente virtual
-
-**Windows:**
-```bash
-venv\Scripts\activate
-```
-
-**Linux/macOS:**
-```bash
-source venv/bin/activate
-```
-
-#### 4. Instalar as bibliotecas Python
-
-```bash
-pip install numpy soundcard pyserial scipy
-```
-
-#### 5. Ou usar `requirements.txt`
+### 1. Dependências
+Certifique-se de ter o Python 3.9+ instalado. Instale as bibliotecas necessárias rodando no terminal:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### Opção 2: Usar o executável (em breve)
-
-Quando o executável estiver disponível:
-
-1. Baixe o arquivo `.exe` da seção de [Releases](https://github.com/SEU_USUARIO_GITHUB/SEU_REPOSITORIO/releases)
-2. Coloque em uma pasta de sua preferência
-3. Clique duas vezes para executar
-4. **Não há necessidade de instalar Python ou qualquer dependência**
-
----
-
-## Como usar
-
-### 1. Gravar o código no Arduino
-
-- Abra o arquivo `controle_motor.ino` na Arduino IDE
-- Selecione a placa correta
-- Selecione a porta correta
-- Faça o upload do sketch
-
-### 2. Conectar o Arduino ao computador
-
-- Conecte o Arduino via USB
-- Feche o **Serial Monitor** da Arduino IDE, caso esteja aberto
-
-### 3. Executar o script Python
-
-#### Se estiver usando o **código Python**:
+### 2. Executando o Script
+Com o Arduino já conectado ao computador, inicie a captura rodando:
 
 ```bash
-python detector_batida.py
+python main.py
 ```
 
-#### Se estiver usando o **executável**:
-
-- Clique duas vezes no arquivo `detector_batida.exe`
-- A janela do programa abrirá automaticamente
-
-### 4. Iniciar a reprodução de áudio
-
-- Dê play em uma música no computador
-- O script/executável vai analisar o áudio da saída padrão
-- Quando uma batida for detectada, o Arduino receberá o valor e acionará o motor
+O script identificará automaticamente a saída de áudio padrão do sistema e iniciará o envio de dados via Serial.
 
 ---
 
-## Ligação do motor
+## 🔌 Hardware e Circuito
 
-**Importante:** nunca ligue o motor diretamente ao pino do Arduino.
+<center><small>Link para o Tinkercad...</small></center>
+ <p align="center">
+<a href="https://www.tinkercad.com/things/0RpFRD87ChT-vibration-motor">
+  <img src="https://csg.us-east-1.prd.tinkercad.com/things/0RpFRD87ChT/t725.png?rev=1588776824634000000&s=&v=1&type=circuits" width="400" alt="Simulação do Circuito no Tinkercad">
+</a>
+</p>
 
-### Recomendado
-- Pino PWM do Arduino → gate/base do transistor ou MOSFET
-- Motor alimentado por fonte externa
-- Diodo em paralelo com o motor para proteção
-- GND comum entre Arduino e a fonte do motor
+### Lógica de Funcionamento
+O circuito baseia-se no controle do motor via **PWM (Modulação por Largura de Pulso)**:
 
-### Exemplo de pino usado
-```cpp
-const int pinoMotor = 3;
-```
+* **Controle de Potência:** O Arduino recebe a intensidade gerada pelo Python (100 a 255) e ajusta o pulso no pino PWM, variando a velocidade e a força do motor.
+* **Fechamento (GND):** O terminal negativo do motor é ligado ao GND da placa, garantindo o retorno seguro da corrente.
+* **Alimentação USB:** Todo o sistema (Arduino e motor) é energizado diretamente pelo cabo USB do computador, sem necessidade de fontes externas.
 
----
+### Componentes Utilizados
+* Placa compatível com Arduino (Ex: Uno, Nano)
+* Motor de vibração
+* Transistor/BC548 ou N2222A *(invertido)* para acionamento do motor
+* Diodo de proteção (Ex: 1N4001)
+* Protoboard e Jumpers
 
-## Configurações importantes
+### ⭐ Código do Arduino
 
-### No Python
-Você pode ajustar:
+Dentro da pasta `artefato/`, você encontrará o arquivo **`controle_motor.ino`**, que contém toda a lógica de controle físico do motor. 
 
-- `taxa_amostra`
-- `janela`
-- `cooldown_batida`
-- `limiar_minimo`
-- `fator_detecao_pico`
-- faixa do filtro
+### Como Carregar via Arduino IDE:
+1. Abra o software **Arduino IDE** em seu computador.
+2. Vá em `Arquivo > Abrir` e selecione o arquivo `artefato/controle_motor.ino`.
+3. Conecte a sua placa Arduino ao computador utilizando o cabo USB.
+4. No menu superior da IDE, certifique-se de selecionar o modelo correto da sua placa (Ex: *Arduino Uno*, *Nano*, etc.) e a porta COM ativa.
+5. Clique no botão **Carregar** (ícone de seta para a direita) para compilar e transferir o código para o hardware.
 
-### No Arduino
-Você pode ajustar:
+> ⚠️ **Importante:** Se você abrir o *Monitor Serial* da Arduino IDE para testar, lembre-se de **fechá-lo** antes de executar o script Python (`main.py`). Duas aplicações não podem usar a mesma porta Serial simultaneamente, e isso causará erro de conexão no Python.
 
-- `taxaDesaceleracao`
-- `forcaMinimaMotor`
-- faixa de mapeamento entre intensidade recebida e PWM
-
----
-
-## Problemas comuns
-
-### Arduino não é encontrado
-- Verifique o cabo USB
-- Verifique os drivers
-- Feche o Serial Monitor
-- Confirme se a porta correta está disponível
-
-### Nenhum áudio é detectado
-- Verifique se o dispositivo de saída de áudio está ativo
-- Confirme se o loopback está disponível
-- Teste com uma música tocando no sistema
-
-### Motor não gira
-- Verifique a ligação elétrica
-- Confirme a alimentação externa do motor
-- Verifique o transistor/MOSFET
-- Verifique se o pino PWM está correto
-
-### Muitas detecções falsas
-- Aumente o limiar mínimo
-- Aumente o cooldown
-- Ajuste a faixa do filtro
-
-### Resposta lenta
-- Reduza a janela de captura no Python
-- Reduza o cooldown
-- Ajuste a desaceleração no Arduino
+<!-- ### Lógica de Ligação Elétrica
+* **Pino PWM do Arduino:** Conectado à base/gate do componente de acionamento (transistor/MOSFET).
+* **Alimentação do motor:** O motor é ligado diretamente ao Arduino, dispensando o uso de fonte externa.
+* **GND Comum:** O GND do Arduino deve obrigatoriamente estar conectado ao GND da fonte externa. -->
 
 ---
 
-## Estrutura dos valores enviados
+## 🚀 Como Funciona o Sistema
 
-### Python envia
-- `0` → nenhuma batida
-- `150 a 600` → batida detectada com intensidade variável
-
-### Arduino interpreta
-- `150` → intensidade mínima útil
-- `600` → intensidade máxima
-- converte esse valor em saída PWM para o motor
+1. **Captura e Filtro (Python):** O `main.py` captura o áudio tocado no sistema e aplica um filtro Passa-Faixa amplo (40Hz a 6000Hz) para escutar toda a faixa musical (dos graves profundos aos agudos secos). Ele calcula o ataque da batida baseando-se em picos reais de energia (RMS) com sensibilidade dinâmica.
+2. **Envio de Dados:** Quando uma batida ou nota aguda do jogo ultrapassa o limiar, o Python envia o valor da intensidade mapeada via comunicação serial para a porta do Arduino.
+3. **Atuação (Arduino):** O código `controle_motor.ino` lê a serial, converte o valor em sinal PWM e aciona o motor aplicando uma lógica de corte seco por tempo (ex: 40ms). Isso garante que o motor responda a notas rápidas sem embolar a vibração.
 
 ---
 
-## Melhorias futuras
+## ⚙️ Configurações Avançadas
 
-- Detecção ainda mais precisa de batidas
-- Ajuste automático de limiar
-- Interface gráfica para calibração
-- Salvamento de configurações em arquivo
-- ✅ Exportação para executável `.exe` (em desenvolvimento)
-- Suporte a mais tipos de motor e resposta tátil
+Se você deseja customizar a sensibilidade ou o comportamento físico da manopla, pode alterar as seguintes variáveis diretamente no código:
 
----
-
-## Licença
-
-Este projeto está sob a licença MIT. Veja o arquivo `LICENSE` para mais detalhes.
-
----
-
-Projeto desenvolvido para detecção de batidas musicais com controle de motor via Arduino.
+* **No Python (`main.py`):**
+  * `fator`: Multiplicador mestre (ex: `1.5`). Aumente para deixar a vibração geral mais intensa ou diminua para suavizar.
+  * `cooldown_batida`: Tempo de espera entre os disparos (ex: `0.06s`). Ideal para ajustar o tempo de resposta em músicas frenéticas.
+* **No Arduino (`controle_motor.ino`):**
+  * `duracaoSoco`: Tempo em milissegundos (ex: `40`) que o motor fica ativo. Altere para tornar o feedback tátil mais seco ou mais arrastado.
